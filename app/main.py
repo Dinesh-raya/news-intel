@@ -22,6 +22,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    logger.info("startup", db_url_masked=settings.ASYNC_DATABASE_URL.split("@")[-1] if "@" in settings.ASYNC_DATABASE_URL else settings.ASYNC_DATABASE_URL)
     await init_db()
     yield
     # Shutdown
