@@ -46,7 +46,8 @@ class IngestionAgent:
         return {"status": "success", "ingested": ingested_count}
 
     async def _process_feed(self, feed_url: str, language: str) -> int:
-        feed = feedparser.parse(feed_url)
+        # Rule: Use custom User-Agent to match typical browser request (Ruthless Reliability)
+        feed = feedparser.parse(feed_url, agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         if hasattr(feed, 'bozo_exception') and feed.bozo_exception:
             logger.warning("feed_parse_error", url=feed_url, error=str(feed.bozo_exception))
             return 0
