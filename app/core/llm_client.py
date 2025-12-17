@@ -26,7 +26,11 @@ class LLMClient:
         # RUTHLESS IMPLEMENTATION:
         # 1. Compress Prompt
         optimized_prompt = self.optimizer.compress_text(prompt)
-        full_prompt = f"{system_instruction}\n\n{optimized_prompt}"
+        
+        messages = []
+        if system_instruction:
+            messages.append({"role": "system", "content": system_instruction})
+        messages.append({"role": "user", "content": optimized_prompt})
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -37,9 +41,7 @@ class LLMClient:
         
         payload = {
             "model": self.model,
-            "messages": [
-                {"role": "user", "content": full_prompt}
-            ],
+            "messages": messages,
             "temperature": 0.0, # Deterministic
             "top_p": 0.9,
             "max_tokens": 1000 # Prevent runaways
@@ -53,7 +55,8 @@ class LLMClient:
                         content = data['choices'][0]['message']['content']
                         # Report Savings
                         original_full = f"{system_instruction}\n\n{prompt}"
-                        self.optimizer.report_savings(original_full, full_prompt)
+                        optimized_full = f"{system_instruction}\n\n{optimized_prompt}"
+                        self.optimizer.report_savings(original_full, optimized_full)
                         return content
                     else:
                         error_text = await resp.text()

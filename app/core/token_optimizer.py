@@ -38,15 +38,11 @@ class TokenOptimizer:
 
     def compress_text(self, text: str) -> str:
         """
-        Removes articles (a, an, the) and standardizes whitespace.
-        Safe for LLM context, NOT for quoted text generation.
+        Normalizes whitespace. 
+        Note: Removed stop-word removal as it was too destructive for news analysis.
         """
         text = re.sub(r'\s+', ' ', text).strip()
-        # Simple stop word removal (demonstration of "Ruthless" optimization)
-        # In prod, be careful not to lose meaning.
-        words = text.split()
-        compressed = [w for w in words if w.lower() not in {'a', 'an', 'the', 'is', 'are', 'was', 'were'}]
-        return " ".join(compressed)
+        return text
 
     def optimize_prompt_structure(self, system_prompt: str, user_data: Any) -> str:
         """
