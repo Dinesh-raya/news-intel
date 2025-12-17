@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     # Database (Supabase Postgres)
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./india_intel.db")
     
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        url = self.DATABASE_URL
+        if url and url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://")
+        return url
+    
     # Supabase Storage (Cloud Native)
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
