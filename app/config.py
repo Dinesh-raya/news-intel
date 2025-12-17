@@ -44,8 +44,8 @@ class Settings(BaseSettings):
 
     # Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    SOURCES_PATH: str = os.path.join(os.path.dirname(BASE_DIR), "sources", "rss_sources.yaml")
-    REPORTS_DIR: str = os.path.join(os.path.dirname(BASE_DIR), "reports")
+    SOURCES_PATH: str = os.path.join(BASE_DIR, "sources", "rss_sources.yaml")
+    REPORTS_DIR: str = os.path.join(BASE_DIR, "reports")
 
     # Rutheless Config
     STRICT_MODE: bool = True
