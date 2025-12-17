@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import List, Optional
 from sqlalchemy import String, Integer, DateTime, Boolean, Text, ForeignKey, Column, Float
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.ext.asyncio import AsyncAttributes
+from sqlalchemy.ext.asyncio import AsyncAttrs
 
-class Base(AsyncAttributes, DeclarativeBase):
+class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 class Article(Base):
