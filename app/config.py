@@ -1,4 +1,5 @@
 import os
+import re
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -18,14 +19,20 @@ class Settings(BaseSettings):
     
     @property
     def ASYNC_DATABASE_URL(self) -> str:
-        # Ruthless whitespace stripping (handles common copy-paste errors)
+        # 1. Start with standard strip
         url = self.DATABASE_URL.strip()
         
-        # Ensure we use asyncpg for any postgres connection
+        # 2. Ruthless ASCII-only filter (kills hidden non-breaking spaces \u00a0, zero-width spaces \u200b, etc.)
+        url = "".join(c for c in url if 32 < ord(c) < 127)
+        
+        # Safe fallback if user pasted just the hostname (rare but possible)
+        if not url.startswith(("postgresql://", "postgres://", "sqlite")):
+             return url # Let SQLAlchemy handle the error naturally
+             
+        # 3. Ensure we use asyncpg
         if url.startswith("postgresql://"):
             return url.replace("postgresql://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgres://"):
-            # Heroku-style or older direct strings
             return url.replace("postgres://", "postgresql+asyncpg://", 1)
             
         return url
