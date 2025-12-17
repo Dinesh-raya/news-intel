@@ -22,8 +22,21 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("startup", db_url_masked=settings.ASYNC_DATABASE_URL.split("@")[-1] if "@" in settings.ASYNC_DATABASE_URL else settings.ASYNC_DATABASE_URL)
-    await init_db()
+    db_url = settings.ASYNC_DATABASE_URL
+    host_part = db_url.split("@")[-1] if "@" in db_url else db_url
+    
+    logger.info("startup", db_host=host_part)
+    
+    if "db.xxx.supabase.co" in db_url:
+        logger.error("DANGER: You are using the PLACEHOLDER database URL. Please update your DATABASE_URL in Render.")
+        raise ValueError("Invalid Database URL: Placeholder detected.")
+
+    try:
+        await init_db()
+    except Exception as e:
+        logger.error("database_init_failed", error=str(e), advice="Check if hostname is correct and accessible.")
+        raise
+        
     yield
     # Shutdown
 

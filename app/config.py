@@ -18,9 +18,16 @@ class Settings(BaseSettings):
     
     @property
     def ASYNC_DATABASE_URL(self) -> str:
-        url = self.DATABASE_URL
-        if url and url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+asyncpg://")
+        # Ruthless whitespace stripping (handles common copy-paste errors)
+        url = self.DATABASE_URL.strip()
+        
+        # Ensure we use asyncpg for any postgres connection
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgres://"):
+            # Heroku-style or older direct strings
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+            
         return url
     
     # Supabase Storage (Cloud Native)
