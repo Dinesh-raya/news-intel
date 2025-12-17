@@ -1,6 +1,7 @@
 english:
-  - https://www.thehindu.com/rss/feed/
-  - https://indianexpress.com/rss/
+  - https://www.thehindu.com/news/national/feeder/default.rss
+  - https://indianexpress.com/section/india/feed/
+  - https://pib.gov.in/RssFull.aspx
 telugu:
-  - https://www.eenadu.net/rss/
-  - https://www.sakshi.com/rss/
+  - https://www.eenadu.net/rss/state/hyderabad
+  - https://www.sakshi.com/rss/hyderabad.xml
