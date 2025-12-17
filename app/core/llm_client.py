@@ -24,14 +24,9 @@ class LLMClient:
             raise ValueError("OPENROUTER_API_KEY not set")
 
         # RUTHLESS IMPLEMENTATION:
-        # 1. Compress Prompt (JSON -> TOON done by caller usually, but we ensure text compression here if needed)
-        # 2. Deterministic Params
-        
-        full_prompt = f"{system_instruction}\n\n{prompt}"
-        
-        # Optimize context if large (naive approach for this snippet)
-        if len(full_prompt) > 4000:
-            full_prompt = self.optimizer.compress_text(full_prompt)
+        # 1. Compress Prompt
+        optimized_prompt = self.optimizer.compress_text(prompt)
+        full_prompt = f"{system_instruction}\n\n{optimized_prompt}"
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -56,8 +51,9 @@ class LLMClient:
                     if resp.status == 200:
                         data = await resp.json()
                         content = data['choices'][0]['message']['content']
-                        # Report Savings (Mock comparison)
-                        self.optimizer.report_savings(full_prompt, full_prompt) 
+                        # Report Savings
+                        original_full = f"{system_instruction}\n\n{prompt}"
+                        self.optimizer.report_savings(original_full, full_prompt)
                         return content
                     else:
                         error_text = await resp.text()

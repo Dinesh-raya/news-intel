@@ -78,7 +78,7 @@ This week saw activity across {len(narratives)} domains.
                     self.supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
                         path=f"reports/{datetime.now().year}/{filename}",
                         file=f,
-                        file_options={"content-type": "text/markdown", "upsert": "true"}
+                        file_options={"content-type": "text/markdown; charset=utf-8", "upsert": "true"}
                     )
                 # Get Public URL (if bucket is public)
                 public_url = self.supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(f"reports/{datetime.now().year}/{filename}")

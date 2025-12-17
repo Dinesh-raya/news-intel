@@ -28,20 +28,22 @@ class NarrativeAgent:
         for domain in domains:
             try:
                 # Check if narrative already exists for this week/domain
-                # Rule 5: Determinism - don't regenerate if done
-                existing = await self.db.execute(select(Narrative).where(
+                existing_res = await self.db.execute(select(Narrative).where(
                     Narrative.domain == domain,
                     Narrative.week_number == week_num,
                     Narrative.year == year
                 ))
-                if existing.scalar():
+                existing = existing_res.scalar()
+                
+                # Rule 5: Determinism - but if existing is a failure placeholder, re-run
+                if existing and existing.narrative_text != "No summary generated.":
                     continue
 
                 # Get articles for this domain
                 arts_res = await self.db.execute(select(Article).where(
                     Article.domain == domain,
                     Article.is_valid == True
-                ).limit(20)) # Cap at 20 for token efficiency context window
+                ).order_by(Article.pub_date.desc()).limit(20))
                 
                 articles = arts_res.scalars().all()
                 if not articles:
@@ -50,55 +52,58 @@ class NarrativeAgent:
                 # Generate Narrative
                 narrative_text, sentiment = await self._generate_narrative(domain, articles)
                 
-                new_narr = Narrative(
-                    domain=domain,
-                    week_number=week_num,
-                    year=year,
-                    narrative_text=narrative_text,
-                    sentiment=sentiment
-                )
-                self.db.add(new_narr)
+                if existing:
+                    existing.narrative_text = narrative_text
+                    existing.sentiment = sentiment
+                else:
+                    new_narr = Narrative(
+                        domain=domain,
+                        week_number=week_num,
+                        year=year,
+                        narrative_text=narrative_text,
+                        sentiment=sentiment
+                    )
+                    self.db.add(new_narr)
                 count += 1
             except Exception as e:
                 logger.error("narrative_gen_failed", domain=domain, error=str(e))
         
         await self.db.commit()
-        logger.info("agent_complete", agent="NarrativeAgent", generated=count)
+        logger.info("agent_complete", agent="NarrativeAgent", processed=count)
         return {"status": "success", "narratives": count}
 
     async def _generate_narrative(self, domain: str, articles: list) -> tuple[str, str]:
-        # Rule 6: Token Optimizer - Use TOON-like formatting manually effectively here
-        # or let the client handle it.
-        
-        # Prepare data snippet
+        # Prepare data block
         snippets = []
         for a in articles:
-            snippets.append(f"- [{a.source_type}] {a.title}: {a.content_clean[:100]}...")
+            # Rule 6: Token efficiency - only clean text
+            snippets.append(f"SOURCE:{a.source} | TITLE:{a.title} | CONTENT:{a.content_clean[:200]}")
         data_block = "\n".join(snippets)
 
         prompt = f"""
-        Analyze these articles for the domain '{domain}'.
-        1. Write a strict, neutral, factual summary of the dominant narrative (max 3 sentences).
-        2. Identify the overall sentiment (Optimistic, Pessimistic, Neutral, Critical).
+        Analyze the following articles for the Indian media domain '{domain}'.
+        1. Write a strict, neutral, factual summary (max 3 sentences).
+        2. Identify the overall sentiment: Optimistic, Pessimistic, Neutral, or Critical.
         
-        Format:
-        SUMMARY: <text>
-        SENTIMENT: <words>
+        CRITICAL: Your response must follow this EXACT format:
+        SUMMARY: <your summary here>
+        SENTIMENT: <the sentiment here>
         
         ARTICLES:
         {data_block}
         """
 
-        response = await self.llm.generate(prompt, system_instruction="You are a neutral intelligence analyst.")
+        response = await self.llm.generate(prompt, system_instruction="You are a senior neutral intelligence analyst specializing in Indian discourse.")
         
-        # Parse output
+        # Robust parsing
         summary = "No summary generated."
         sentiment = "Neutral"
         
         for line in response.split('\n'):
-            if line.startswith("SUMMARY:"):
-                summary = line.replace("SUMMARY:", "").strip()
-            elif line.startswith("SENTIMENT:"):
-                sentiment = line.replace("SENTIMENT:", "").strip()
+            line = line.strip()
+            if line.upper().startswith("SUMMARY"):
+                summary = line.split(":", 1)[-1].strip() if ":" in line else line.replace("SUMMARY", "").strip()
+            elif line.upper().startswith("SENTIMENT"):
+                sentiment = line.split(":", 1)[-1].strip() if ":" in line else line.replace("SENTIMENT", "").strip()
         
         return summary, sentiment
