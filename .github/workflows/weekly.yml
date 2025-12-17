@@ -1,0 +1,24 @@
+name: Weekly Intelligence Trigger
+
+on:
+  schedule:
+    # 9:00 AM UTC every Monday
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  trigger_pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Remote Pipeline
+        run: |
+          # Use curl to hit the deployed endpoint
+          # Using a secret for the host to keep it config-free in repo
+          if [ -z "${{ secrets.DEPLOY_URL }}" ]; then
+            echo "DEPLOY_URL secret is not set. Skipping."
+            exit 1
+          fi
+          
+          curl -X POST "${{ secrets.DEPLOY_URL }}/api/v1/trigger-pipeline" \
+          -H "Content-Type: application/json" \
+          --fail-with-body
